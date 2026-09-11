@@ -24,6 +24,9 @@ private struct AboutBoxView: View {
     private var versionText: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        if build.count == 10, build.allSatisfy(\.isNumber) {
+            return "Version: \(build.prefix(6))-\(build.suffix(4))"
+        }
         return build.isEmpty ? "Version: \(version)" : "Version: \(version) (Build \(build))"
     }
 

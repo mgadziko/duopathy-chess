@@ -27,7 +27,7 @@ struct ContentView: View {
                 ForEach(game.ghostPieces) { preview in ghost(preview, size: size) }
             }
             .frame(width: size, height: size)
-            .overlay(alignment: .bottomLeading) { Text("Numbered ghosts = principal variation, ply by ply").font(.caption2.weight(.medium)).padding(7).background(.black.opacity(0.58), in: Capsule()).foregroundStyle(.white).padding(8) }
+            .overlay(alignment: .bottomLeading) { Text("Numbered ghosts = live Stockfish / LLM principal variation").font(.caption2.weight(.medium)).padding(7).background(.black.opacity(0.58), in: Capsule()).foregroundStyle(.white).padding(8) }
         }
         .aspectRatio(1, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -65,6 +65,7 @@ struct ContentView: View {
                 HStack { Button("Refresh Models") { Task { await game.refreshModels() } }; Spacer(); Button("New Game") { game.newGame() } }
             }.padding(.top, 4) }
             GroupBox("Ollama") { VStack(alignment: .leading, spacing: 8) { TextField("Server", text: $game.baseURLInput).textFieldStyle(.roundedBorder); Text("Choose any installed local model for each side.").font(.caption).foregroundStyle(.secondary) }.padding(.top, 4) }
+            GroupBox("Stockfish") { Text(game.engineSummary).font(.caption.monospaced()).lineLimit(3).textSelection(.enabled).padding(.top, 4) }
             GroupBox("Thinking") { VStack(alignment: .leading, spacing: 8) { if game.isThinking { HStack { ProgressView().controlSize(.small); Text("Showing \(game.ghostPieces.count)-ply principal variation") }.font(.caption); Text(game.streamingText.isEmpty ? "Waiting for the model…" : game.streamingText).font(.caption.monospaced()).lineLimit(5).textSelection(.enabled) } else { Text("Numbered ghosts show the model's contemplated line, one ply at a time.").font(.caption).foregroundStyle(.secondary) } }.padding(.top, 4) }
             GroupBox("Move List") { ScrollView { LazyVGrid(columns: [GridItem(.fixed(34)), GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 6) { ForEach(Array(stride(from: 0, to: game.moves.count, by: 2)), id: \.self) { i in Text("\(i / 2 + 1).").foregroundStyle(.secondary); Text(game.moves[i]); Text(i + 1 < game.moves.count ? game.moves[i + 1] : "") } }.font(.caption.monospaced()) }.frame(minHeight: 95, maxHeight: .infinity) }
             HStack { Button("Start") { game.start() }.buttonStyle(.borderedProminent).tint(.indigo).keyboardShortcut(.return).disabled(game.isRunning); Button("Pause") { game.pause() }.buttonStyle(.bordered).disabled(!game.isRunning); Spacer(); if game.isThinking { ProgressView().controlSize(.small) } }

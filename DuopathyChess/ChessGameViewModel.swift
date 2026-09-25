@@ -1,5 +1,11 @@
 import Foundation
 
+enum StockfishAnalysisTime: String, CaseIterable, Identifiable {
+    case halfSecond = "0.5 sec", oneSecond = "1.0 sec", oneAndHalfSeconds = "1.5 sec", twoSeconds = "2.0 sec", fiveSeconds = "5.0 sec", tenSeconds = "10.0 sec", fifteenSeconds = "15.0 sec"
+    var id: String { rawValue }
+    var milliseconds: Int { switch self { case .halfSecond: 500; case .oneSecond: 1_000; case .oneAndHalfSeconds: 1_500; case .twoSeconds: 2_000; case .fiveSeconds: 5_000; case .tenSeconds: 10_000; case .fifteenSeconds: 15_000 } }
+}
+
 @MainActor
 final class ChessGameViewModel: ObservableObject {
     @Published var models: [OllamaModel] = []
@@ -14,6 +20,7 @@ final class ChessGameViewModel: ObservableObject {
     @Published var ghostPieces: [GhostPiece] = []
     @Published var streamingText = ""
     @Published var engineSummary = "Stockfish: waiting"
+    @Published var stockfishAnalysisTime: StockfishAnalysisTime = .oneAndHalfSeconds
     private var task: Task<Void, Never>?
     private var nextMoveTask: Task<Void, Never>?
     private var service: OllamaService { OllamaService(baseURL: URL(string: baseURLInput) ?? URL(string: "http://127.0.0.1:11434")!) }
@@ -36,13 +43,14 @@ final class ChessGameViewModel: ObservableObject {
             guard let self else { return }
             let advice: [StockfishLine]
             do {
-                advice = try await self.stockfish.analyze(fen: snapshot.fen()) { lines in
+                let analysisTime = self.stockfishAnalysisTime
+                advice = try await self.stockfish.analyze(fen: snapshot.fen(), timeLimitMilliseconds: analysisTime.milliseconds) { lines in
                     await MainActor.run {
                         self.engineSummary = "Stockfish live: " + lines.map { "\($0.move) (\($0.score))" }.joined(separator: "  •  ")
                         if let principal = lines.first { self.ghostPieces = Self.contemplatedPieces(for: principal.variation, from: snapshot) }
                     }
                 }
-                self.engineSummary = "Stockfish 1.5 s: " + advice.map { "\($0.move) (\($0.score))" }.joined(separator: "  •  ")
+                self.engineSummary = "Stockfish \(analysisTime.rawValue): " + advice.map { "\($0.move) (\($0.score))" }.joined(separator: "  •  ")
             } catch { advice = []; self.engineSummary = "Stockfish unavailable — using full legal list" }
             guard !Task.isCancelled else { return }
             self.status = "\(snapshot.sideToMove.rawValue.capitalized) / \(model) considering…"
